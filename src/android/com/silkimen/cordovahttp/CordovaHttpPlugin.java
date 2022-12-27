@@ -21,6 +21,7 @@ public class CordovaHttpPlugin extends CordovaPlugin {
   private static final String TAG = "Cordova-Plugin-HTTP";
 
   private TLSConfiguration tlsConfiguration;
+  private TLSConfiguration nocheckTLSConfiguration;
 
   @Override
   public void initialize(CordovaInterface cordova, CordovaWebView webView) {
@@ -38,6 +39,7 @@ public class CordovaHttpPlugin extends CordovaPlugin {
 
       this.tlsConfiguration.setHostnameVerifier(null);
       this.tlsConfiguration.setTrustManagers(tmf.getTrustManagers());
+      this.nocheckTLSConfiguration = CordovaHttpPluginUtil.getNoCheckTLSConfiguration();
     } catch (Exception e) {
       Log.e(TAG, "An error occured while loading system's CA certificates", e);
     }
@@ -85,8 +87,10 @@ public class CordovaHttpPlugin extends CordovaPlugin {
     boolean followRedirect = args.getBoolean(3);
     String responseType = args.getString(4);
 
+    boolean isNoCheckURL = CordovaHttpPluginUtil.isNoCheckURL(url,this.cordova.getActivity());
+
     CordovaHttpOperation request = new CordovaHttpOperation(method.toUpperCase(), url, headers, timeout, followRedirect,
-        responseType, this.tlsConfiguration, callbackContext);
+        responseType, isNoCheckURL? this.nocheckTLSConfiguration: this.tlsConfiguration, callbackContext);
 
     cordova.getThreadPool().execute(request);
 
@@ -104,8 +108,10 @@ public class CordovaHttpPlugin extends CordovaPlugin {
     boolean followRedirect = args.getBoolean(5);
     String responseType = args.getString(6);
 
+    boolean isNoCheckURL = CordovaHttpPluginUtil.isNoCheckURL(url,this.cordova.getActivity());
+
     CordovaHttpOperation request = new CordovaHttpOperation(method.toUpperCase(), url, serializer, data, headers,
-        timeout, followRedirect, responseType, this.tlsConfiguration, callbackContext);
+        timeout, followRedirect, responseType, isNoCheckURL? this.nocheckTLSConfiguration: this.tlsConfiguration, callbackContext);
 
     cordova.getThreadPool().execute(request);
 

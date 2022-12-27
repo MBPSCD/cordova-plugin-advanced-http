@@ -5,6 +5,7 @@
 #import "TextRequestSerializer.h"
 #import "AFHTTPSessionManager.h"
 #import "SDNetworkActivityIndicator.h"
+#import "CordovaHttpPluginUtil.h"
 
 @interface CordovaHttpPlugin()
 
@@ -20,10 +21,14 @@
 
 @implementation CordovaHttpPlugin {
     AFSecurityPolicy *securityPolicy;
+    AFSecurityPolicy *noCheckSecurityPolicy;
 }
 
 - (void)pluginInitialize {
     securityPolicy = [AFSecurityPolicy policyWithPinningMode:AFSSLPinningModeNone];
+    noCheckSecurityPolicy = [AFSecurityPolicy policyWithPinningMode:AFSSLPinningModeNone];
+    noCheckSecurityPolicy.allowInvalidCertificates = YES;
+    noCheckSecurityPolicy.validatesDomainName = NO;
 }
 
 - (void)setRequestSerializer:(NSString*)serializerName forManager:(AFHTTPSessionManager*)manager {
@@ -165,13 +170,18 @@
 
 - (void)get:(CDVInvokedUrlCommand*)command {
     AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
-    manager.securityPolicy = securityPolicy;
 
     NSString *url = [command.arguments objectAtIndex:0];
     NSDictionary *headers = [command.arguments objectAtIndex:1];
     NSTimeInterval timeoutInSeconds = [[command.arguments objectAtIndex:2] doubleValue];
     bool followRedirect = [[command.arguments objectAtIndex:3] boolValue];
     NSString *responseType = [command.arguments objectAtIndex:4];
+
+    if([CordovaHttpPluginUtil isNoCheckURL:url]){
+        manager.securityPolicy = noCheckSecurityPolicy;
+    }else{
+        manager.securityPolicy = securityPolicy;
+    }
 
     [self setRequestSerializer: @"default" forManager: manager];
     [self setRequestHeaders: headers forManager: manager];
@@ -290,7 +300,6 @@
 
 - (void)post:(CDVInvokedUrlCommand*)command {
     AFHTTPSessionManager *manager = [AFHTTPSessionManager manager];
-    manager.securityPolicy = securityPolicy;
 
     NSString *url = [command.arguments objectAtIndex:0];
     NSDictionary *data = [command.arguments objectAtIndex:1];
@@ -299,6 +308,12 @@
     NSTimeInterval timeoutInSeconds = [[command.arguments objectAtIndex:4] doubleValue];
     bool followRedirect = [[command.arguments objectAtIndex:5] boolValue];
     NSString *responseType = [command.arguments objectAtIndex:6];
+
+    if([CordovaHttpPluginUtil isNoCheckURL:url]){
+        manager.securityPolicy = noCheckSecurityPolicy;
+    }else{
+        manager.securityPolicy = securityPolicy;
+    }
 
     [self setRequestSerializer: serializerName forManager: manager];
     [self setRequestHeaders: headers forManager: manager];
